@@ -22,12 +22,6 @@ This is a browser extension that will do its best to find and mask GUIDs (such a
 
 ### Chrome / Edge
 
-#### From Chrome Web Store / Edge Add-ons
-
-**Chrome:** Coming soon — resubmission to the Chrome Web Store is in progress.
-
-**Edge:** Coming soon — resubmission to the Edge Add-ons store is in progress.
-
 #### From Package
 
 1. Go to [Releases](https://github.com/jaydestro/azure-mask-v2/releases) and download the latest `.zip` file (e.g. [`az-mask-2.0.0.zip`](https://github.com/jaydestro/azure-mask-v2/releases/download/v2.0.0/az-mask-2.0.0.zip))
@@ -65,5 +59,7 @@ After following these steps you should now see the new extension icon in Chrome/
 3. You'll see a pop up notification in the address bar from Firefox. Click "Add"
 4. You'll see a confirmation that it was added. Click "Ok"
 
+## TBD
 
-
+- Resubmission to the [Chrome Web Store](https://chrome.google.com/webstore/) is pending.
+- Resubmission to the [Edge Add-ons](https://microsoftedge.microsoft.com/addons/) store is pending.
