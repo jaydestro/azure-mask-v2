@@ -2,8 +2,6 @@
   
 # Azure Mask (Az Mask)
 
-![GitHub](https://img.shields.io/github/license/jaydestro/azure-mask-v2)
-
 </div>
 
 > Originally created and maintained by [@clarkio](https://github.com/clarkio). This fork is maintained by [@jaydestro](https://github.com/jaydestro) to ensure the extension continues to work with modern browsers after the Manifest V2 deprecation.
@@ -26,17 +24,9 @@ This is a browser extension that will do its best to find and mask GUIDs (such a
 
 #### From Chrome Web Store / Edge Add-ons
 
-**Chrome:**
-1. In Chrome go to [Chrome Web Store](https://chrome.google.com/webstore/detail/az-mask/amobeamdmdnloajcaiomgegpakjdiacm)
-2. Click on Az Mask extension
-3. Click on "Add To Chrome"
-4. Confirm any prompts
+**Chrome:** Coming soon — resubmission to the Chrome Web Store is in progress.
 
-**Edge:**
-1. In Edge go to [Edge Add-ons](https://microsoftedge.microsoft.com/addons/) and search for "Az Mask"
-2. Click on Az Mask extension
-3. Click on "Get"
-4. Confirm any prompts
+**Edge:** Coming soon — resubmission to the Edge Add-ons store is in progress.
 
 #### From Package
 
