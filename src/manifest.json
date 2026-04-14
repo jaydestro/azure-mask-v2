@@ -1,14 +1,14 @@
 {
-  "manifest_version": 2,
+  "manifest_version": 3,
   "name": "Az Mask",
-  "version": "1.1.10",
-  "description": "Does it's best to find and conceal sensitive Azure information found in the portal views",
+  "version": "2.0.0",
+  "description": "Does its best to find and conceal sensitive Azure information found in the portal views",
   "icons": {
     "16": "/icons/icon16.png",
     "48": "/icons/icon48.png",
     "128": "/icons/icon128.png"
   },
-  "browser_action": {
+  "action": {
     "default_icon": "/icons/icon16.png",
     "default_popup": "/popout/popout.html"
   },
@@ -35,6 +35,9 @@
   "permissions": [
     "activeTab",
     "storage",
+    "scripting"
+  ],
+  "host_permissions": [
     "*://*.portal.azure.com/*",
     "*://portal.azure.com/*",
     "*://portal.azure.us/*",
@@ -43,5 +46,16 @@
     "*://*.qnamaker.ai/*",
     "*://adf.azure.com/*",
     "*://ms-adf.azure.com/*"
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["/icons/default-avatar.png"],
+      "matches": [
+        "*://*.portal.azure.com/*",
+        "*://portal.azure.com/*",
+        "*://portal.azure.us/*",
+        "*://portal.azure.cn/*"
+      ]
+    }
   ]
 }
