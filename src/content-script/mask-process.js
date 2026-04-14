@@ -6,7 +6,7 @@ const sensitiveDataClassName = 'azdev-sensitive';
 const blurCss = 'filter: blur(10px) !important; pointer-events: none !important;';
 
 // Labels in the Essentials blade whose adjacent value should be blurred
-const sensitiveLabels = ['subscription', 'subscription id', 'resource group'];
+const sensitiveLabels = ['subscription', 'resource group'];
 
 // Inject CSS rules
 const css = `
@@ -55,13 +55,28 @@ function scanTextNodes() {
   }
 }
 
-// 2) Find Essentials blade labels (Subscription, Subscription ID, Resource group)
+// 2) Also check innerText of all small leaf elements for GUIDs
+//    This catches cases where the text node approach misses due to
+//    how the portal renders elements (e.g. React virtual DOM)
+function scanLeafElements() {
+  const els = document.querySelectorAll('span, div, a, td, p, li');
+  for (const el of els) {
+    if (el.classList.contains(sensitiveDataClassName)) continue;
+    if (el.children.length > 0) continue; // skip containers, only check leaves
+    const text = el.innerText || el.textContent || '';
+    if (text.length < 5 || text.length > 100) continue; // skip very short or long text
+    if (guidRegex.test(text) || emailRegex.test(text)) {
+      el.classList.add(sensitiveDataClassName);
+    }
+  }
+}
+
+// 3) Find Essentials blade labels (Subscription, Resource group)
 //    and blur the value element next to them
 function scanEssentialsLabels() {
   const allElements = document.querySelectorAll('div, span, td, th, dt, dd, li, label');
   for (const el of allElements) {
     if (el.classList.contains('azdev-label-checked')) continue;
-    // Only check leaf-ish text
     const text = el.textContent.trim().toLowerCase().replace(/\s*\(.*\)/, '');
     if (!sensitiveLabels.includes(text)) continue;
     el.classList.add('azdev-label-checked');
@@ -80,17 +95,27 @@ function scanEssentialsLabels() {
   }
 }
 
+// Pause observer while scanning to avoid feedback loop
+let scanning = false;
 function fullScan() {
+  if (scanning) return;
+  scanning = true;
   scanTextNodes();
+  scanLeafElements();
   scanEssentialsLabels();
+  scanning = false;
 }
 
 // Run immediately, then periodically for SPA navigation
 fullScan();
 setInterval(fullScan, 2000);
 
-// Also run on DOM changes
-const observer = new MutationObserver(fullScan);
+// Debounced observer — wait for DOM to settle before scanning
+let debounceTimer = null;
+const observer = new MutationObserver(() => {
+  if (debounceTimer) clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(fullScan, 300);
+});
 observer.observe(document.body, {
   childList: true,
   characterData: true,
