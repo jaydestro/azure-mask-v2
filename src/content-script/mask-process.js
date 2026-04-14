@@ -42,12 +42,12 @@ style.sheet.insertRule(
   `.${maskEnabledClassName} .fxs-avatarmenu-tenant-image-container::after {
     content: "";
     display: inline-block;
-    background: url(https://portal.azure.com/Content/static/MsPortalImpl/AvatarMenu/AvatarMenu_defaultAvatarSmall.png) no-repeat;
+    background: url(${chrome.runtime.getURL('icons/default-avatar.png')}) no-repeat;
     width: 28px;
     height: 28px;
     border-radius: 28px;
   }`
-); // replacement avatar
+); // replacement avatar (bundled locally)
 style.sheet.insertRule(
   `.${maskEnabledClassName} textarea.bg-white { ${blurCss} }`
 ); // deployment box in (QnA maker portal)

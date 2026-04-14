@@ -2,16 +2,11 @@
   
 # Azure Mask (Az Mask)
 
-[![Known Vulnerabilities](https://snyk.io/test/github/clarkio/azure-mask/badge.svg)](https://snyk.io/test/github/clarkio/azure-mask)
-![GitHub](https://img.shields.io/github/license/clarkio/azure-mask)
-[![Discord](https://img.shields.io/discord/421902136457035777)](https://discord.gg/xB95beJ)
-[![Twitch Status](https://img.shields.io/twitch/status/clarkio)](https://twitch.tv/clarkio)
-<br>
-[![Twitter Follow](https://img.shields.io/twitter/follow/_clarkio?style=social)](https://twitter.com/intent/follow?screen_name=_clarkio)
-
 </div>
 
-This is a browser extension that will do its best to find and mask GUIDs (such as Subscription IDs), email addresses, keys, and connection strings with a blur. The intention of the extension is to make it easier to do screen recordings without revealing sensitive, personal, account information that may show up on screen. It will only run and apply against Azure portal URLs ([see manifest.json for specifics](https://github.com/clarkio/azure-mask/blob/master/src/manifest.json#L32)). It's available in Chromium based browsers and Firefox.
+> Originally created and maintained by [@clarkio](https://github.com/clarkio). This fork is maintained by [@jaydestro](https://github.com/jaydestro) to ensure the extension continues to work with modern browsers after the Manifest V2 deprecation.
+
+This is a browser extension that will do its best to find and mask GUIDs (such as Subscription IDs), email addresses, keys, and connection strings with a blur. The intention of the extension is to make it easier to do screen recordings without revealing sensitive, personal, account information that may show up on screen. It will only run and apply against Azure portal URLs ([see manifest.json for specifics](https://github.com/jaydestro/azure-mask-v2/blob/master/src/manifest.json#L17)). It's available in Chromium based browsers and Firefox.
 
 ![screen shot](azure-mask-screen-shot.png)
 
@@ -27,27 +22,20 @@ This is a browser extension that will do its best to find and mask GUIDs (such a
 
 ### Chrome / Edge
 
-#### From Chrome Web Store
-
-1. In Chrome go to [Chrome Web Store](https://chrome.google.com/webstore/detail/az-mask/amobeamdmdnloajcaiomgegpakjdiacm)
-2. Click on Az Mask extension
-3. Click on Add To Chrome
-4. Confirm any prompts
-
 #### From Package
 
-1. Go to [Releases](https://github.com/clarkio/azure-mask/releases) and download the latest `.zip` file (e.g. `az-mask-1.1.5.zip
-`)
+1. Go to [Releases](https://github.com/jaydestro/azure-mask-v2/releases) and download the latest `.zip` file (e.g. [`az-mask-2.0.0.zip`](https://github.com/jaydestro/azure-mask-v2/releases/download/v2.0.0/az-mask-2.0.0.zip))
 2. Go to the folder you downloaded the zip and extract it.
-3. In Chrome go to [chrome://extensions](chrome://extensions)
-4. Check the "Developer mode" option in the top-right corner
-4. Select the button to load extracted extensions. 
-5. Select the folder you created by unpacking in step 2.
-6. Confirm any prompts
+3a. (Chrome) In Chrome go to [chrome://extensions](chrome://extensions)
+3b. (Edge) In Edge go to [edge://extensions](edge://extensions)
+4. Enable "Developer mode" (top-right in Chrome, bottom-left in Edge)
+5. Click "Load unpacked"
+6. Select the folder you extracted in step 2
+7. Confirm any prompts
 
 #### From Source
 
-1 - `git clone git@github.com:clarkio/azure-mask.git`
+1 - `git clone git@github.com:jaydestro/azure-mask-v2.git`
 
 2a - (Chrome) In Chrome, navigate to `chrome://extensions/`
 
@@ -62,7 +50,7 @@ This is a browser extension that will do its best to find and mask GUIDs (such a
 5 - Navigate to where you cloned this repo and then choose `/azure-mask/src`
 
 
-After following these steps you should now see the new extension icon in Chrome.
+After following these steps you should now see the new extension icon in Chrome/Edge.
 
 ### Firefox
 
@@ -71,5 +59,7 @@ After following these steps you should now see the new extension icon in Chrome.
 3. You'll see a pop up notification in the address bar from Firefox. Click "Add"
 4. You'll see a confirmation that it was added. Click "Ok"
 
+## TBD
 
-
+- Resubmission to the [Chrome Web Store](https://chrome.google.com/webstore/) is pending.
+- Resubmission to the [Edge Add-ons](https://microsoftedge.microsoft.com/addons/) store is pending.
