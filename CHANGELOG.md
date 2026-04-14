@@ -5,7 +5,7 @@
 ### Breaking
 
 - Migrated from Manifest V2 to Manifest V3 (MV2 extensions are no longer supported by Chrome or Edge)
-- Forked from [clarkio/azure-mask](https://github.com/clarkio/azure-mask) to [jaydestro/azure-mask](https://github.com/jaydestro/azure-mask)
+- Forked from [clarkio/azure-mask](https://github.com/clarkio/azure-mask) to [jaydestro/azure-mask-v2](https://github.com/jaydestro/azure-mask-v2)
 - Removed all deprecated pre-2.0.0 extension packages
 
 ### Fixed

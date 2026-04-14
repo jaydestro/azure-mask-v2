@@ -47,4 +47,4 @@ If this privacy policy is updated, the changes will be reflected in this file wi
 
 ## Contact
 
-For questions about this privacy policy, please open an issue at [github.com/jaydestro/azure-mask](https://github.com/jaydestro/azure-mask/issues).
+For questions about this privacy policy, please open an issue at [github.com/jaydestro/azure-mask-v2](https://github.com/jaydestro/azure-mask-v2/issues).

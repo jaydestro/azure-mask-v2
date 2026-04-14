@@ -2,14 +2,13 @@
   
 # Azure Mask (Az Mask)
 
-[![Known Vulnerabilities](https://snyk.io/test/github/jaydestro/azure-mask/badge.svg)](https://snyk.io/test/github/jaydestro/azure-mask)
-![GitHub](https://img.shields.io/github/license/jaydestro/azure-mask)
+![GitHub](https://img.shields.io/github/license/jaydestro/azure-mask-v2)
 
 </div>
 
 > Originally created and maintained by [@clarkio](https://github.com/clarkio). This fork is maintained by [@jaydestro](https://github.com/jaydestro) to ensure the extension continues to work with modern browsers after the Manifest V2 deprecation.
 
-This is a browser extension that will do its best to find and mask GUIDs (such as Subscription IDs), email addresses, keys, and connection strings with a blur. The intention of the extension is to make it easier to do screen recordings without revealing sensitive, personal, account information that may show up on screen. It will only run and apply against Azure portal URLs ([see manifest.json for specifics](https://github.com/jaydestro/azure-mask/blob/master/src/manifest.json#L17)). It's available in Chromium based browsers and Firefox.
+This is a browser extension that will do its best to find and mask GUIDs (such as Subscription IDs), email addresses, keys, and connection strings with a blur. The intention of the extension is to make it easier to do screen recordings without revealing sensitive, personal, account information that may show up on screen. It will only run and apply against Azure portal URLs ([see manifest.json for specifics](https://github.com/jaydestro/azure-mask-v2/blob/master/src/manifest.json#L17)). It's available in Chromium based browsers and Firefox.
 
 ![screen shot](azure-mask-screen-shot.png)
 
@@ -41,7 +40,7 @@ This is a browser extension that will do its best to find and mask GUIDs (such a
 
 #### From Package
 
-1. Go to [Releases](https://github.com/jaydestro/azure-mask/releases) and download the latest `.zip` file (e.g. [`az-mask-2.0.0.zip`](https://github.com/jaydestro/azure-mask/releases/download/v2.0.0/az-mask-2.0.0.zip))
+1. Go to [Releases](https://github.com/jaydestro/azure-mask-v2/releases) and download the latest `.zip` file (e.g. [`az-mask-2.0.0.zip`](https://github.com/jaydestro/azure-mask-v2/releases/download/v2.0.0/az-mask-2.0.0.zip))
 2. Go to the folder you downloaded the zip and extract it.
 3a. (Chrome) In Chrome go to [chrome://extensions](chrome://extensions)
 3b. (Edge) In Edge go to [edge://extensions](edge://extensions)
@@ -52,7 +51,7 @@ This is a browser extension that will do its best to find and mask GUIDs (such a
 
 #### From Source
 
-1 - `git clone git@github.com:jaydestro/azure-mask.git`
+1 - `git clone git@github.com:jaydestro/azure-mask-v2.git`
 
 2a - (Chrome) In Chrome, navigate to `chrome://extensions/`
 
