@@ -42,7 +42,11 @@ function injectDisableAllMasks() {
     if (!tabs[0]) return;
     chrome.scripting.executeScript({
       target: { tabId: tabs[0].id, allFrames: true },
-      func: () => document.body.classList.remove('az-mask-enabled')
+      func: () => {
+        document.body.classList.remove('az-mask-enabled');
+        document.querySelectorAll('.azdev-sensitive').forEach(el => el.classList.remove('azdev-sensitive'));
+        document.querySelectorAll('.azdev-label-checked').forEach(el => el.classList.remove('azdev-label-checked'));
+      }
     });
   });
 }

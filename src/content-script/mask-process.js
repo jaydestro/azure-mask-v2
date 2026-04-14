@@ -5,85 +5,33 @@ const emailRegex = /[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/;
 const sensitiveDataClassName = 'azdev-sensitive';
 const blurCss = 'filter: blur(10px) !important; pointer-events: none !important;';
 
-// add CSS style to blur
-const style = document.createElement('style');
-style.appendChild(document.createTextNode(''));
-document.head.appendChild(style);
+// Labels in the Essentials blade whose adjacent value should be blurred
+const sensitiveLabels = ['subscription', 'subscription id', 'resource group'];
 
-// Core blur rule
-style.sheet.insertRule(
-  `.${maskEnabledClassName} .${sensitiveDataClassName} { ${blurCss} }`
-);
-
-// Azure portal Essentials blade - blur all values
-style.sheet.insertRule(
-  `.${maskEnabledClassName} .fxc-essentials-value { ${blurCss} }`
-);
-style.sheet.insertRule(
-  `.${maskEnabledClassName} .fxc-essentials-item-value { ${blurCss} }`
-);
-style.sheet.insertRule(
-  `.${maskEnabledClassName} [class*="essentials"] [class*="value"] { ${blurCss} }`
-);
-style.sheet.insertRule(
-  `.${maskEnabledClassName} [class*="essentials"] a { ${blurCss} }`
-);
-
-// User identity
-style.sheet.insertRule(
-  `.${maskEnabledClassName} .fxs-avatarmenu-username { display: none !important; }`
-);
-style.sheet.insertRule(
-  `.${maskEnabledClassName} .fxs-mecontrol-flyout { ${blurCss} }`
-);
-style.sheet.insertRule(
-  `.${maskEnabledClassName} #mectrl_currentAccount_secondary { ${blurCss} }`
-);
-style.sheet.insertRule(
-  `.${maskEnabledClassName} .fxs-avatarmenu-tenant-image { display: none !important; }`
-);
-style.sheet.insertRule(
-  `.${maskEnabledClassName} .fxs-avatarmenu-tenant-image-container::after {
-    content: "";
-    display: inline-block;
+// Inject CSS rules
+const css = `
+  .${maskEnabledClassName} .${sensitiveDataClassName} { ${blurCss} }
+  .${maskEnabledClassName} .fxs-avatarmenu-username { display: none !important; }
+  .${maskEnabledClassName} .fxs-mecontrol-flyout { ${blurCss} }
+  .${maskEnabledClassName} #mectrl_currentAccount_secondary { ${blurCss} }
+  .${maskEnabledClassName} .fxs-avatarmenu-tenant-image { display: none !important; }
+  .${maskEnabledClassName} .fxs-avatarmenu-tenant-image-container::after {
+    content: ""; display: inline-block;
     background: url(${chrome.runtime.getURL('icons/default-avatar.png')}) no-repeat;
-    width: 28px;
-    height: 28px;
-    border-radius: 28px;
-  }`
-);
-
-// Input boxes (keys, connection strings)
-style.sheet.insertRule(
-  `.${maskEnabledClassName} input.azc-bg-light { ${blurCss} }`
-);
-
-// Internal MS elements
-style.sheet.insertRule(
-  `.${maskEnabledClassName} a.fxs-topbar-reportbug { display: none !important; }`
-);
-style.sheet.insertRule(
-  `.${maskEnabledClassName} div.fxs-topbar-internal { display: none !important; }`
-);
-
-// QnA Maker
-style.sheet.insertRule(
-  `.${maskEnabledClassName} textarea.bg-white { ${blurCss} }`
-);
-style.sheet.insertRule(
-  `.${maskEnabledClassName} span.qna-cs-user-id { display: none !important; }`
-);
-style.sheet.insertRule(
-  `.${maskEnabledClassName} div.directory-list-element-id { ${blurCss} }`
-);
-
-// ADF
-style.sheet.insertRule(
-  `.${maskEnabledClassName} .userEmail { display: none !important; }`
-);
-style.sheet.insertRule(
-  `.${maskEnabledClassName} .user-email { ${blurCss} }`
-);
+    width: 28px; height: 28px; border-radius: 28px;
+  }
+  .${maskEnabledClassName} input.azc-bg-light { ${blurCss} }
+  .${maskEnabledClassName} a.fxs-topbar-reportbug { display: none !important; }
+  .${maskEnabledClassName} div.fxs-topbar-internal { display: none !important; }
+  .${maskEnabledClassName} textarea.bg-white { ${blurCss} }
+  .${maskEnabledClassName} span.qna-cs-user-id { display: none !important; }
+  .${maskEnabledClassName} div.directory-list-element-id { ${blurCss} }
+  .${maskEnabledClassName} .userEmail { display: none !important; }
+  .${maskEnabledClassName} .user-email { ${blurCss} }
+`;
+const styleEl = document.createElement('style');
+styleEl.textContent = css;
+document.head.appendChild(styleEl);
 
 // Enable/disable mask based on stored state
 getStoredMaskedStatus(isMasked => {
@@ -92,13 +40,12 @@ getStoredMaskedStatus(isMasked => {
     : document.body.classList.remove(maskEnabledClassName);
 });
 
-// Simple scan: walk every text node, if it contains a GUID or email,
-// add the blur class to its parent element
-function scanForSensitiveText() {
+// 1) Walk text nodes — blur parent if it contains a GUID or email
+function scanTextNodes() {
   const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
   while (walker.nextNode()) {
     const text = walker.currentNode.nodeValue;
-    if (!text) continue;
+    if (!text || text.trim().length < 5) continue;
     if (guidRegex.test(text) || emailRegex.test(text)) {
       const el = walker.currentNode.parentElement;
       if (el && !el.classList.contains(sensitiveDataClassName)) {
@@ -108,12 +55,42 @@ function scanForSensitiveText() {
   }
 }
 
-// Run scan on load, then periodically for SPA navigation
-scanForSensitiveText();
-setInterval(scanForSensitiveText, 1500);
+// 2) Find Essentials blade labels (Subscription, Subscription ID, Resource group)
+//    and blur the value element next to them
+function scanEssentialsLabels() {
+  const allElements = document.querySelectorAll('div, span, td, th, dt, dd, li, label');
+  for (const el of allElements) {
+    if (el.classList.contains('azdev-label-checked')) continue;
+    // Only check leaf-ish text
+    const text = el.textContent.trim().toLowerCase().replace(/\s*\(.*\)/, '');
+    if (!sensitiveLabels.includes(text)) continue;
+    el.classList.add('azdev-label-checked');
 
-// Also scan on DOM changes
-const observer = new MutationObserver(scanForSensitiveText);
+    // Try to find the sibling value: next element sibling, or parent's next sibling
+    let valueEl = el.nextElementSibling;
+    if (!valueEl && el.parentElement) {
+      valueEl = el.parentElement.nextElementSibling;
+    }
+    if (!valueEl && el.parentElement && el.parentElement.parentElement) {
+      valueEl = el.parentElement.parentElement.nextElementSibling;
+    }
+    if (valueEl && !valueEl.classList.contains(sensitiveDataClassName)) {
+      valueEl.classList.add(sensitiveDataClassName);
+    }
+  }
+}
+
+function fullScan() {
+  scanTextNodes();
+  scanEssentialsLabels();
+}
+
+// Run immediately, then periodically for SPA navigation
+fullScan();
+setInterval(fullScan, 2000);
+
+// Also run on DOM changes
+const observer = new MutationObserver(fullScan);
 observer.observe(document.body, {
   childList: true,
   characterData: true,
