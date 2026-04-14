@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Az Mask",
+  "name": "Az Mask v2",
   "version": "2.0.0",
   "description": "Does its best to find and conceal sensitive Azure information found in the portal views",
   "icons": {
