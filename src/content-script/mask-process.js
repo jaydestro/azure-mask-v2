@@ -1,6 +1,7 @@
 const isMaskedKeyName = 'isMasked';
 const maskEnabledClassName = 'az-mask-enabled';
-const sensitiveDataRegex = /^\s*([a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12})\s*$/;
+const sensitiveDataRegex = /^\s*([a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12})\s*$/i;
+const guidContainsRegex = /[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}/i;
 /* ** Original regex prior to 2019-04-18 **
  * const sensitiveDataRegex = /^\s*([a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12})|((([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,})))\s*$/;
  *
@@ -70,25 +71,67 @@ getStoredMaskedStatus(isMasked => {
     : document.body.classList.remove(maskEnabledClassName);
 });
 
-// add class to elements already on the screen
-Array.from(document.querySelectorAll(tagNamesToMatch.join()))
-  .filter(e => shouldCheckContent(e) && sensitiveDataRegex.test(e.textContent))
-  .forEach(e => e.classList.add(sensitiveDataClassName));
+// Finds the smallest element that directly owns a GUID text node
+function markGuidElements(root) {
+  if (!root) return;
+  const sel = tagNamesToMatch.join(',');
+
+  // 1) Check all target elements in this DOM tree
+  let elements;
+  try {
+    elements = root.querySelectorAll ? root.querySelectorAll('*') : [];
+  } catch (e) { return; }
+
+  for (const el of elements) {
+    // Traverse into shadow roots
+    if (el.shadowRoot) {
+      markGuidElements(el.shadowRoot);
+    }
+
+    if (!el.classList || el.classList.contains(sensitiveDataClassName)) continue;
+
+    // Check each direct child text node of this element
+    for (const child of el.childNodes) {
+      if (child.nodeType === Node.TEXT_NODE && guidContainsRegex.test(child.textContent)) {
+        el.classList.add(sensitiveDataClassName);
+        break;
+      }
+    }
+  }
+}
+
+function fullScan() {
+  markGuidElements(document.body);
+
+  // Also scan all iframes we can access
+  try {
+    const iframes = document.querySelectorAll('iframe');
+    for (const iframe of iframes) {
+      try {
+        if (iframe.contentDocument && iframe.contentDocument.body) {
+          markGuidElements(iframe.contentDocument.body);
+        }
+      } catch (e) { /* cross-origin, skip */ }
+    }
+  } catch (e) { /* skip */ }
+}
+
+fullScan();
+
+// Aggressive initial scanning for SPA lazy rendering, then slow down
+let scanCount = 0;
+const initialScan = setInterval(() => {
+  fullScan();
+  scanCount++;
+  if (scanCount >= 20) { // 10 seconds of fast scanning
+    clearInterval(initialScan);
+    setInterval(fullScan, 3000); // then every 3s
+  }
+}, 500);
 
 // add class to elements that are added to DOM later
-const observer = new MutationObserver(mutations => {
-  mutations
-    .filter(
-      m =>
-        shouldCheckContent(m.target, m.type) &&
-        sensitiveDataRegex.test(m.target.textContent.trim())
-    )
-    .forEach(m => {
-      const node = m.type === 'characterData' ? m.target.parentNode : m.target;
-      if (node.classList) {
-        node.classList.add('azdev-sensitive');
-      }
-    });
+const observer = new MutationObserver(() => {
+  fullScan();
 });
 const config = {
   attributes: false,
@@ -97,13 +140,6 @@ const config = {
   subtree: true
 };
 observer.observe(document.body, config);
-
-function shouldCheckContent(target, mutationType) {
-  return (
-    mutationType === 'characterData' ||
-    (target && tagNamesToMatch.some(tn => tn === target.tagName))
-  );
-}
 
 function getStoredMaskedStatus(callback) {
   chrome.storage.local.get(isMaskedKeyName, items => {
