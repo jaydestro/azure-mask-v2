@@ -1,13 +1,13 @@
 const isMaskedKeyName = 'isMasked';
 const maskEnabledClassName = 'az-mask-enabled';
-const sensitiveDataRegex = /^([a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12})$/;
+const sensitiveDataRegex = /^\s*([a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12})\s*$/;
 /* ** Original regex prior to 2019-04-18 **
  * const sensitiveDataRegex = /^\s*([a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12})|((([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,})))\s*$/;
  *
  */
 const sensitiveDataClassName = 'azdev-sensitive';
 const blurCss = 'filter: blur(10px); pointer-events: none;';
-const tagNamesToMatch = ['DIV']; // uppercase
+const tagNamesToMatch = ['DIV', 'SPAN', 'A', 'TD', 'P']; // uppercase
 
 // add CSS style to blur
 const style = document.createElement('style');
