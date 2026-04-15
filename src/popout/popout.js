@@ -44,7 +44,12 @@ function injectDisableAllMasks() {
       target: { tabId: tabs[0].id, allFrames: true },
       func: () => {
         document.body.classList.remove('az-mask-enabled');
-        document.querySelectorAll('.azdev-sensitive').forEach(el => el.classList.remove('azdev-sensitive'));
+        document.querySelectorAll('.azdev-sensitive, [data-az-mask-sensitive="1"]').forEach(el => {
+          el.classList.remove('azdev-sensitive');
+          el.removeAttribute('data-az-mask-sensitive');
+          el.style.removeProperty('filter');
+          el.style.removeProperty('pointer-events');
+        });
         document.querySelectorAll('.azdev-label-checked').forEach(el => el.classList.remove('azdev-label-checked'));
       }
     });

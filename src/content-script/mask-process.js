@@ -2,6 +2,7 @@ const isMaskedKeyName = 'isMasked';
 const maskEnabledClassName = 'az-mask-enabled';
 const sensitiveDataRegex = /^([a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12})$/i;
 const sensitiveDataClassName = 'azdev-sensitive';
+const sensitiveDataMarkerAttribute = 'data-az-mask-sensitive';
 const blurCss = 'filter: blur(10px) !important; pointer-events: none !important;';
 const tagNamesToMatch = ['DIV', 'SPAN', 'A', 'TD', 'P', 'LI']; // uppercase
 
@@ -98,33 +99,79 @@ function getDirectText(el) {
   return directText.trim();
 }
 
+function normalizeText(text) {
+  return (text || '')
+    .replace(/\u00a0/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase()
+    .replace(/\s*\(.*\)$/, '');
+}
+
 function isVisible(el) {
   return !el.hidden && el.getClientRects().length > 0;
 }
 
-function findValueForLabel(labelText, predicate) {
-  const candidates = document.querySelectorAll('div, span, td, th, dt, dd, label');
-  for (const el of candidates) {
-    const ownText = getDirectText(el).toLowerCase().replace(/\s*\(.*\)$/, '');
-    if (ownText !== labelText) {
+function markSensitiveElement(el) {
+  if (!el || !isVisible(el)) {
+    return;
+  }
+
+  el.classList.add(sensitiveDataClassName);
+  el.setAttribute(sensitiveDataMarkerAttribute, '1');
+  el.style.setProperty('filter', 'blur(10px)', 'important');
+  el.style.setProperty('pointer-events', 'none', 'important');
+}
+
+function firstMatchingElement(root, predicate) {
+  const candidates = [root, ...root.querySelectorAll('a, div, span, td, p, li')];
+  for (const candidate of candidates) {
+    if (candidate.nodeType !== Node.ELEMENT_NODE) {
       continue;
     }
+    if (!isVisible(candidate)) {
+      continue;
+    }
+    if (predicate(candidate)) {
+      return candidate;
+    }
+  }
+  return null;
+}
 
-    const roots = [
-      el.parentElement,
-      el.parentElement && el.parentElement.parentElement,
-      el.parentElement && el.parentElement.parentElement && el.parentElement.parentElement.parentElement
-    ].filter(Boolean);
+function findAdjacentValue(labelEl, predicate) {
+  const labelTexts = new Set(['subscription', 'subscription id', 'resource group']);
+  const bases = [
+    labelEl,
+    labelEl.parentElement,
+    labelEl.parentElement && labelEl.parentElement.parentElement,
+    labelEl.parentElement &&
+      labelEl.parentElement.parentElement &&
+      labelEl.parentElement.parentElement.parentElement
+  ].filter(Boolean);
 
-    for (const root of roots) {
-      const matches = Array.from(root.querySelectorAll('a, div, span, td, p, li'))
-        .filter(candidate => candidate !== el)
-        .filter(candidate => !el.contains(candidate))
-        .filter(isVisible)
-        .filter(predicate);
+  for (const base of bases) {
+    const ordered = Array.from(
+      base.querySelectorAll('a, div, span, td, th, dt, dd, p, li, label')
+    );
+    const startIndex = ordered.indexOf(labelEl);
+    if (startIndex !== -1) {
+      for (let index = startIndex + 1; index < ordered.length; index++) {
+        const candidate = ordered[index];
+        if (!isVisible(candidate)) {
+          continue;
+        }
 
-      if (matches.length > 0) {
-        return matches[0];
+        const candidateLabel = normalizeText(
+          getDirectText(candidate) || candidate.textContent
+        );
+        if (labelTexts.has(candidateLabel)) {
+          break;
+        }
+
+        if (!labelEl.contains(candidate) && predicate(candidate)) {
+          return candidate;
+        }
       }
     }
   }
@@ -132,7 +179,30 @@ function findValueForLabel(labelText, predicate) {
   return null;
 }
 
+function findValueForLabel(labelText, predicate) {
+  const candidates = document.querySelectorAll('div, span, td, th, dt, dd, label');
+  for (const el of candidates) {
+    const ownText = normalizeText(getDirectText(el) || el.textContent);
+    if (ownText !== labelText) {
+      continue;
+    }
+
+    const adjacentMatch = findAdjacentValue(el, predicate);
+    if (adjacentMatch) {
+      return adjacentMatch;
+    }
+  }
+
+  return null;
+}
+
 function blurImportantPortalFields() {
+  Array.from(
+    document.querySelectorAll('.ms-TooltipHost[role="none"], div[role="none"], span[role="none"]')
+  )
+    .filter(hasDirectSensitiveText)
+    .forEach(markSensitiveElement);
+
   const subscriptionIdEl = findValueForLabel(
     'subscription id',
     candidate =>
@@ -140,7 +210,7 @@ function blurImportantPortalFields() {
       hasDirectSensitiveText(candidate)
   );
   if (subscriptionIdEl) {
-    subscriptionIdEl.classList.add(sensitiveDataClassName);
+    markSensitiveElement(subscriptionIdEl);
   }
 
   const subscriptionNameEl = findValueForLabel(
@@ -150,7 +220,7 @@ function blurImportantPortalFields() {
       /\/subscriptions\/[0-9a-f]{8}-[0-9a-f]{4}/i.test(candidate.href || '')
   );
   if (subscriptionNameEl) {
-    subscriptionNameEl.classList.add(sensitiveDataClassName);
+    markSensitiveElement(subscriptionNameEl);
   }
 
   const resourceGroupEl = findValueForLabel(
@@ -160,14 +230,14 @@ function blurImportantPortalFields() {
       /\/resourceGroups\//i.test(candidate.href || '')
   );
   if (resourceGroupEl) {
-    resourceGroupEl.classList.add(sensitiveDataClassName);
+    markSensitiveElement(resourceGroupEl);
   }
 }
 
 // add class to elements already on the screen
 Array.from(document.querySelectorAll(tagNamesToMatch.join()))
   .filter(e => shouldCheckContent(e) && (isSensitive(e.textContent) || hasDirectSensitiveText(e)))
-  .forEach(e => e.classList.add(sensitiveDataClassName));
+  .forEach(markSensitiveElement);
 
 blurImportantPortalFields();
 
@@ -182,7 +252,7 @@ const observer = new MutationObserver(mutations => {
     .forEach(m => {
       const node = m.type === 'characterData' ? m.target.parentNode : m.target;
       if (node.classList) {
-        node.classList.add('azdev-sensitive');
+        markSensitiveElement(node);
       }
     });
 
@@ -200,7 +270,7 @@ observer.observe(document.body, config);
 setInterval(() => {
   Array.from(document.querySelectorAll(tagNamesToMatch.join()))
     .filter(e => !e.classList.contains(sensitiveDataClassName) && shouldCheckContent(e) && (isSensitive(e.textContent) || hasDirectSensitiveText(e)))
-    .forEach(e => e.classList.add(sensitiveDataClassName));
+    .forEach(markSensitiveElement);
   blurImportantPortalFields();
 }, 2000);
 
