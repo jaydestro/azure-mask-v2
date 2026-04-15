@@ -17,6 +17,7 @@
       "matches": [
         "*://*.portal.azure.com/*",
         "*://portal.azure.com/*",
+        "*://*.portal.azure.net/*",
         "*://functions.azure.com/*",
         "*://portal.azure.us/*",
         "*://*.qnamaker.ai/*",
@@ -40,6 +41,7 @@
   "host_permissions": [
     "*://*.portal.azure.com/*",
     "*://portal.azure.com/*",
+    "*://*.portal.azure.net/*",
     "*://portal.azure.us/*",
     "*://portal.azure.cn/*",
     "*://functions.azure.com/*",
@@ -53,6 +55,7 @@
       "matches": [
         "*://*.portal.azure.com/*",
         "*://portal.azure.com/*",
+        "*://*.portal.azure.net/*",
         "*://portal.azure.us/*",
         "*://portal.azure.cn/*"
       ]
