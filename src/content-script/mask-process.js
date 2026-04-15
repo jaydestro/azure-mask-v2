@@ -76,10 +76,29 @@ function isSensitive(text) {
   return false;
 }
 
+// Check if an element has a direct child text node containing sensitive data.
+// This avoids false negatives when textContent includes descendants
+// (e.g. Fluent UI TooltipHost renders the GUID twice: once visible, once in a hidden div).
+function hasDirectSensitiveText(el) {
+  for (const child of el.childNodes) {
+    if (child.nodeType === Node.TEXT_NODE && isSensitive(child.nodeValue)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 // add class to elements already on the screen
 Array.from(document.querySelectorAll(tagNamesToMatch.join()))
-  .filter(e => shouldCheckContent(e) && isSensitive(e.textContent))
+  .filter(e => shouldCheckContent(e) && (isSensitive(e.textContent) || hasDirectSensitiveText(e)))
   .forEach(e => e.classList.add(sensitiveDataClassName));
+
+// Blur links whose href contains /subscriptions/{guid} (e.g. subscription name links)
+document.querySelectorAll('a[href*="/subscriptions/"]').forEach(a => {
+  if (/\/subscriptions\/[0-9a-f]{8}-[0-9a-f]{4}/i.test(a.href)) {
+    a.classList.add(sensitiveDataClassName);
+  }
+});
 
 // add class to elements that are added to DOM later
 const observer = new MutationObserver(mutations => {
@@ -87,7 +106,7 @@ const observer = new MutationObserver(mutations => {
     .filter(
       m =>
         shouldCheckContent(m.target, m.type) &&
-        isSensitive(m.target.textContent.trim())
+        (isSensitive(m.target.textContent.trim()) || (m.target.childNodes && hasDirectSensitiveText(m.target)))
     )
     .forEach(m => {
       const node = m.type === 'characterData' ? m.target.parentNode : m.target;
@@ -107,8 +126,14 @@ observer.observe(document.body, config);
 // Periodic re-scan for SPA navigation (portal dynamically renders blades)
 setInterval(() => {
   Array.from(document.querySelectorAll(tagNamesToMatch.join()))
-    .filter(e => !e.classList.contains(sensitiveDataClassName) && shouldCheckContent(e) && isSensitive(e.textContent))
+    .filter(e => !e.classList.contains(sensitiveDataClassName) && shouldCheckContent(e) && (isSensitive(e.textContent) || hasDirectSensitiveText(e)))
     .forEach(e => e.classList.add(sensitiveDataClassName));
+  // Blur links whose href contains /subscriptions/{guid} (e.g. subscription name links)
+  document.querySelectorAll('a[href*="/subscriptions/"]').forEach(a => {
+    if (!a.classList.contains(sensitiveDataClassName) && /\/subscriptions\/[0-9a-f]{8}-[0-9a-f]{4}/i.test(a.href)) {
+      a.classList.add(sensitiveDataClassName);
+    }
+  });
 }, 2000);
 
 function shouldCheckContent(target, mutationType) {
