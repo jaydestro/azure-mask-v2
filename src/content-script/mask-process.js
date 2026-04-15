@@ -123,73 +123,90 @@ function markSensitiveElement(el) {
   el.style.setProperty('pointer-events', 'none', 'important');
 }
 
-function firstMatchingElement(root, predicate) {
-  const candidates = [root, ...root.querySelectorAll('a, div, span, td, p, li')];
-  for (const candidate of candidates) {
-    if (candidate.nodeType !== Node.ELEMENT_NODE) {
+const essentialFieldLabels = new Set(['subscription', 'subscription id', 'resource group']);
+
+function getEssentialsRoots() {
+  const headingCandidates = document.querySelectorAll('div, span, h1, h2, h3, h4, label');
+  const roots = [];
+  const seenRoots = new Set();
+
+  for (const heading of headingCandidates) {
+    const headingText = normalizeText(getDirectText(heading) || heading.textContent);
+    if (headingText !== 'essentials') {
       continue;
     }
-    if (!isVisible(candidate)) {
-      continue;
-    }
-    if (predicate(candidate)) {
-      return candidate;
-    }
-  }
-  return null;
-}
 
-function findAdjacentValue(labelEl, predicate) {
-  const labelTexts = new Set(['subscription', 'subscription id', 'resource group']);
-  const bases = [
-    labelEl,
-    labelEl.parentElement,
-    labelEl.parentElement && labelEl.parentElement.parentElement,
-    labelEl.parentElement &&
-      labelEl.parentElement.parentElement &&
-      labelEl.parentElement.parentElement.parentElement
-  ].filter(Boolean);
+    const candidateRoots = [
+      heading.parentElement,
+      heading.parentElement && heading.parentElement.parentElement,
+      heading.parentElement && heading.parentElement.parentElement && heading.parentElement.parentElement.parentElement,
+      heading.closest('section'),
+      heading.closest('[role="group"]')
+    ].filter(Boolean);
 
-  for (const base of bases) {
-    const ordered = Array.from(
-      base.querySelectorAll('a, div, span, td, th, dt, dd, p, li, label')
-    );
-    const startIndex = ordered.indexOf(labelEl);
-    if (startIndex !== -1) {
-      for (let index = startIndex + 1; index < ordered.length; index++) {
-        const candidate = ordered[index];
-        if (!isVisible(candidate)) {
-          continue;
-        }
+    for (const root of candidateRoots) {
+      if (seenRoots.has(root)) {
+        continue;
+      }
 
-        const candidateLabel = normalizeText(
-          getDirectText(candidate) || candidate.textContent
-        );
-        if (labelTexts.has(candidateLabel)) {
-          break;
-        }
+      const hasFieldLabels = Array.from(
+        root.querySelectorAll('div, span, td, th, dt, dd, label')
+      ).some(candidate => essentialFieldLabels.has(normalizeText(getDirectText(candidate) || candidate.textContent)));
 
-        if (!labelEl.contains(candidate) && predicate(candidate)) {
-          return candidate;
-        }
+      if (hasFieldLabels) {
+        seenRoots.add(root);
+        roots.push(root);
+        break;
       }
     }
   }
 
-  return null;
+  return roots;
+}
+
+function findBestCandidateForLabel(labelEl, predicate, root) {
+  const labelRect = labelEl.getBoundingClientRect();
+  const candidates = Array.from(root.querySelectorAll('a, div, span, td, p, li'))
+    .filter(candidate => candidate !== labelEl)
+    .filter(candidate => !labelEl.contains(candidate))
+    .filter(isVisible)
+    .filter(predicate)
+    .map(candidate => {
+      const rect = candidate.getBoundingClientRect();
+      const verticalOffset = rect.top - labelRect.bottom;
+      const horizontalOffset = Math.abs(rect.left - labelRect.left);
+      const sameColumn = horizontalOffset <= 220;
+      const nearBelow = verticalOffset >= -8 && verticalOffset <= 80;
+
+      if (!sameColumn || !nearBelow) {
+        return null;
+      }
+
+      return {
+        candidate,
+        score: Math.abs(verticalOffset) + horizontalOffset
+      };
+    })
+    .filter(Boolean)
+    .sort((left, right) => left.score - right.score);
+
+  return candidates.length > 0 ? candidates[0].candidate : null;
 }
 
 function findValueForLabel(labelText, predicate) {
-  const candidates = document.querySelectorAll('div, span, td, th, dt, dd, label');
-  for (const el of candidates) {
-    const ownText = normalizeText(getDirectText(el) || el.textContent);
-    if (ownText !== labelText) {
-      continue;
-    }
+  const roots = getEssentialsRoots();
+  for (const root of roots) {
+    const candidates = root.querySelectorAll('div, span, td, th, dt, dd, label');
+    for (const el of candidates) {
+      const ownText = normalizeText(getDirectText(el) || el.textContent);
+      if (ownText !== labelText) {
+        continue;
+      }
 
-    const adjacentMatch = findAdjacentValue(el, predicate);
-    if (adjacentMatch) {
-      return adjacentMatch;
+      const positionedMatch = findBestCandidateForLabel(el, predicate, root);
+      if (positionedMatch) {
+        return positionedMatch;
+      }
     }
   }
 
