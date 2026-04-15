@@ -93,13 +93,6 @@ Array.from(document.querySelectorAll(tagNamesToMatch.join()))
   .filter(e => shouldCheckContent(e) && (isSensitive(e.textContent) || hasDirectSensitiveText(e)))
   .forEach(e => e.classList.add(sensitiveDataClassName));
 
-// Blur links whose href contains /subscriptions/{guid} (e.g. subscription name links)
-document.querySelectorAll('a[href*="/subscriptions/"]').forEach(a => {
-  if (/\/subscriptions\/[0-9a-f]{8}-[0-9a-f]{4}/i.test(a.href)) {
-    a.classList.add(sensitiveDataClassName);
-  }
-});
-
 // add class to elements that are added to DOM later
 const observer = new MutationObserver(mutations => {
   mutations
@@ -128,12 +121,8 @@ setInterval(() => {
   Array.from(document.querySelectorAll(tagNamesToMatch.join()))
     .filter(e => !e.classList.contains(sensitiveDataClassName) && shouldCheckContent(e) && (isSensitive(e.textContent) || hasDirectSensitiveText(e)))
     .forEach(e => e.classList.add(sensitiveDataClassName));
-  // Blur links whose href contains /subscriptions/{guid} (e.g. subscription name links)
-  document.querySelectorAll('a[href*="/subscriptions/"]').forEach(a => {
-    if (!a.classList.contains(sensitiveDataClassName) && /\/subscriptions\/[0-9a-f]{8}-[0-9a-f]{4}/i.test(a.href)) {
-      a.classList.add(sensitiveDataClassName);
-    }
-  });
+  // Blur subscription/resource group name values in Essentials blade
+  blurLabelValues();
 }, 2000);
 
 function shouldCheckContent(target, mutationType) {
@@ -142,6 +131,34 @@ function shouldCheckContent(target, mutationType) {
     (target && tagNamesToMatch.some(tn => tn === target.tagName))
   );
 }
+
+// Find labels like "Subscription" or "Resource group" in the Essentials blade
+// and blur the value element next to them (subscription name, resource group name)
+const sensitiveLabels = ['subscription', 'resource group'];
+function blurLabelValues() {
+  const candidates = document.querySelectorAll('div, span, td, th, dt, dd, label');
+  for (const el of candidates) {
+    if (el.dataset.azMaskChecked) continue;
+    // Only check elements whose own direct text matches a label
+    let directText = '';
+    for (const child of el.childNodes) {
+      if (child.nodeType === Node.TEXT_NODE) directText += child.nodeValue;
+    }
+    const label = directText.trim().toLowerCase().replace(/\s*\(.*\)$/, '');
+    if (!sensitiveLabels.includes(label)) continue;
+    el.dataset.azMaskChecked = '1';
+
+    // Walk up and sideways to find the value element
+    let valueEl = el.nextElementSibling;
+    if (!valueEl && el.parentElement) valueEl = el.parentElement.nextElementSibling;
+    if (valueEl && !valueEl.classList.contains(sensitiveDataClassName)) {
+      valueEl.classList.add(sensitiveDataClassName);
+    }
+  }
+}
+
+// Run label scan on load
+blurLabelValues();
 
 function getStoredMaskedStatus(callback) {
   chrome.storage.local.get(isMaskedKeyName, items => {
