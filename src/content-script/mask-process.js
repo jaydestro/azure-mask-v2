@@ -1,8 +1,8 @@
 const isMaskedKeyName = 'isMasked';
 const maskEnabledClassName = 'az-mask-enabled';
-const sensitiveDataRegex = /^([a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12})$/;
+const sensitiveDataRegex = /^([a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12})$/i;
 const sensitiveDataClassName = 'azdev-sensitive';
-const blurCss = 'filter: blur(10px); pointer-events: none;';
+const blurCss = 'filter: blur(10px) !important; pointer-events: none !important;';
 const tagNamesToMatch = ['DIV', 'SPAN', 'A', 'TD', 'P', 'LI']; // uppercase
 
 // add CSS style to blur
@@ -88,10 +88,88 @@ function hasDirectSensitiveText(el) {
   return false;
 }
 
+function getDirectText(el) {
+  let directText = '';
+  for (const child of el.childNodes) {
+    if (child.nodeType === Node.TEXT_NODE) {
+      directText += child.nodeValue;
+    }
+  }
+  return directText.trim();
+}
+
+function isVisible(el) {
+  return !el.hidden && el.getClientRects().length > 0;
+}
+
+function findValueForLabel(labelText, predicate) {
+  const candidates = document.querySelectorAll('div, span, td, th, dt, dd, label');
+  for (const el of candidates) {
+    const ownText = getDirectText(el).toLowerCase().replace(/\s*\(.*\)$/, '');
+    if (ownText !== labelText) {
+      continue;
+    }
+
+    const roots = [
+      el.parentElement,
+      el.parentElement && el.parentElement.parentElement,
+      el.parentElement && el.parentElement.parentElement && el.parentElement.parentElement.parentElement
+    ].filter(Boolean);
+
+    for (const root of roots) {
+      const matches = Array.from(root.querySelectorAll('a, div, span, td, p, li'))
+        .filter(candidate => candidate !== el)
+        .filter(candidate => !el.contains(candidate))
+        .filter(isVisible)
+        .filter(predicate);
+
+      if (matches.length > 0) {
+        return matches[0];
+      }
+    }
+  }
+
+  return null;
+}
+
+function blurImportantPortalFields() {
+  const subscriptionIdEl = findValueForLabel(
+    'subscription id',
+    candidate =>
+      candidate.matches('.ms-TooltipHost[role="none"], div[role="none"], span[role="none"]') &&
+      hasDirectSensitiveText(candidate)
+  );
+  if (subscriptionIdEl) {
+    subscriptionIdEl.classList.add(sensitiveDataClassName);
+  }
+
+  const subscriptionNameEl = findValueForLabel(
+    'subscription',
+    candidate =>
+      candidate.tagName === 'A' &&
+      /\/subscriptions\/[0-9a-f]{8}-[0-9a-f]{4}/i.test(candidate.href || '')
+  );
+  if (subscriptionNameEl) {
+    subscriptionNameEl.classList.add(sensitiveDataClassName);
+  }
+
+  const resourceGroupEl = findValueForLabel(
+    'resource group',
+    candidate =>
+      candidate.tagName === 'A' &&
+      /\/resourceGroups\//i.test(candidate.href || '')
+  );
+  if (resourceGroupEl) {
+    resourceGroupEl.classList.add(sensitiveDataClassName);
+  }
+}
+
 // add class to elements already on the screen
 Array.from(document.querySelectorAll(tagNamesToMatch.join()))
   .filter(e => shouldCheckContent(e) && (isSensitive(e.textContent) || hasDirectSensitiveText(e)))
   .forEach(e => e.classList.add(sensitiveDataClassName));
+
+blurImportantPortalFields();
 
 // add class to elements that are added to DOM later
 const observer = new MutationObserver(mutations => {
@@ -107,6 +185,8 @@ const observer = new MutationObserver(mutations => {
         node.classList.add('azdev-sensitive');
       }
     });
+
+  blurImportantPortalFields();
 });
 const config = {
   attributes: false,
@@ -121,8 +201,7 @@ setInterval(() => {
   Array.from(document.querySelectorAll(tagNamesToMatch.join()))
     .filter(e => !e.classList.contains(sensitiveDataClassName) && shouldCheckContent(e) && (isSensitive(e.textContent) || hasDirectSensitiveText(e)))
     .forEach(e => e.classList.add(sensitiveDataClassName));
-  // Blur subscription/resource group name values in Essentials blade
-  blurLabelValues();
+  blurImportantPortalFields();
 }, 2000);
 
 function shouldCheckContent(target, mutationType) {
@@ -131,34 +210,6 @@ function shouldCheckContent(target, mutationType) {
     (target && tagNamesToMatch.some(tn => tn === target.tagName))
   );
 }
-
-// Find labels like "Subscription" or "Resource group" in the Essentials blade
-// and blur the value element next to them (subscription name, resource group name)
-const sensitiveLabels = ['subscription', 'resource group'];
-function blurLabelValues() {
-  const candidates = document.querySelectorAll('div, span, td, th, dt, dd, label');
-  for (const el of candidates) {
-    if (el.dataset.azMaskChecked) continue;
-    // Only check elements whose own direct text matches a label
-    let directText = '';
-    for (const child of el.childNodes) {
-      if (child.nodeType === Node.TEXT_NODE) directText += child.nodeValue;
-    }
-    const label = directText.trim().toLowerCase().replace(/\s*\(.*\)$/, '');
-    if (!sensitiveLabels.includes(label)) continue;
-    el.dataset.azMaskChecked = '1';
-
-    // Walk up and sideways to find the value element
-    let valueEl = el.nextElementSibling;
-    if (!valueEl && el.parentElement) valueEl = el.parentElement.nextElementSibling;
-    if (valueEl && !valueEl.classList.contains(sensitiveDataClassName)) {
-      valueEl.classList.add(sensitiveDataClassName);
-    }
-  }
-}
-
-// Run label scan on load
-blurLabelValues();
 
 function getStoredMaskedStatus(callback) {
   chrome.storage.local.get(isMaskedKeyName, items => {
